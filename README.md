@@ -17,6 +17,8 @@ An interactive "resonant wall" for a hallway. VL53L0X time-of-flight sensors det
 | [`docs/motor-board-peripheral-firmware.md`](docs/motor-board-peripheral-firmware.md) | Motor board firmware notes: ESP-NOW transport, pinout, open items |
 | [`docs/master-ui-and-gateway.md`](docs/master-ui-and-gateway.md) | PC master app and ESP-NOW gateway: packet formats, line protocol, control logic |
 | [`docs/vl53l0x-arduino-uno-test.md`](docs/vl53l0x-arduino-uno-test.md) | VL53L0X range test on an Arduino Uno: wiring, findings, ESP32 porting notes |
+| [`docs/hexagon-node-controller.html`](docs/hexagon-node-controller.html) | Earlier node controller design sheet (Rev B): power, pin map, H-bridge wiring, sensors, BOM, layout rules |
+| [`simulator/index.html`](simulator/index.html) | Resonant Wall master-node simulator. Open it in a browser and move the cursor over the hex field to see per-motor commands |
 | [`docs/images/TOFpins.png`](docs/images/TOFpins.png) | VL53L0X breakout pinout |
 | [`hardware/motor-driver-board/`](hardware/motor-driver-board/) | KiCad PCB (`.kicad_pcb`) and schematic PDF for the motor driver board |
 | [`datasheets/`](datasheets/) | ESP32-WROOM-32, VL53L0X, BTS7960 and Arduino Uno (A000066) datasheets |
@@ -34,4 +36,5 @@ Command codes: FWD 0 · REV 1 · STOP 2 · HOME 3 · CAL 4 · GOTO 5. See [`docs
 
 - The motor driver board has been designed in KiCad but not yet fabricated. Its pinout is transcribed from the schematic and still needs to be verified against hardware.
 - The VL53L0X has been bench-tested on an Arduino Uno.
+- The master-node simulator (`simulator/`) runs as-is in any browser.
 - Firmware and master app source (`ResonantWallMotorBoard`, `resonant_wall_master.py`, `ResonantWallGateway.ino`, `vl53l0x_distance_test.ino`) are not in this repo yet.

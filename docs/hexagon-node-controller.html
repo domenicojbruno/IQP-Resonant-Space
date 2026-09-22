@@ -1,0 +1,878 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<title>Hexagon Node Controller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  :root {
+    --ground:      #F4F5F2;
+    --surface:     #FFFFFF;
+    --surface-alt: #EBEDE8;
+    --ink:         #171A18;
+    --ink-soft:    #414942;
+    --muted:       #5E655F;
+    --rule:        #D2D7CF;
+    --rule-soft:   #E3E7E0;
+    --power:       #A05014;
+    --power-bg:    #F6EADF;
+    --signal:      #0F6C69;
+    --signal-bg:   #E1EFEC;
+    --critical:    #9E2F27;
+    --critical-bg: #F7E7E4;
+    --shadow:      0 1px 2px rgba(23,26,24,.06), 0 8px 24px -12px rgba(23,26,24,.18);
+
+    --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --f-body:    "Source Serif 4", Georgia, "Times New Roman", serif;
+    --f-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #111513;
+      --surface:     #191E1B;
+      --surface-alt: #212724;
+      --ink:         #E3E8E4;
+      --ink-soft:    #BFC7C1;
+      --muted:       #8B958D;
+      --rule:        #2C3430;
+      --rule-soft:   #232B27;
+      --power:       #DD8A4A;
+      --power-bg:    #2A1F16;
+      --signal:      #45AEA8;
+      --signal-bg:   #142B29;
+      --critical:    #E4736A;
+      --critical-bg: #2E1A18;
+      --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #111513;
+    --surface:     #191E1B;
+    --surface-alt: #212724;
+    --ink:         #E3E8E4;
+    --ink-soft:    #BFC7C1;
+    --muted:       #8B958D;
+    --rule:        #2C3430;
+    --rule-soft:   #232B27;
+    --power:       #DD8A4A;
+    --power-bg:    #2A1F16;
+    --signal:      #45AEA8;
+    --signal-bg:   #142B29;
+    --critical:    #E4736A;
+    --critical-bg: #2E1A18;
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1020px; margin: 0 auto; padding: 0 28px 120px; }
+
+  .masthead { padding: 72px 0 36px; border-bottom: 2px solid var(--ink); }
+
+  .eyebrow {
+    font-family: var(--f-display);
+    font-size: 12px; font-weight: 600;
+    letter-spacing: .16em; text-transform: uppercase;
+    color: var(--power); margin: 0 0 20px;
+  }
+
+  h1 {
+    font-family: var(--f-display); font-weight: 700;
+    font-size: clamp(34px, 5.5vw, 54px);
+    line-height: 1.04; letter-spacing: -.022em;
+    margin: 0 0 18px; text-wrap: balance;
+  }
+
+  .standfirst {
+    font-size: 20px; line-height: 1.5;
+    color: var(--ink-soft); max-width: 60ch; margin: 0;
+  }
+
+  .revbar {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    margin-top: 26px; font-family: var(--f-display);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+  .revbar span { padding: 4px 10px; border-radius: 2px; background: var(--surface-alt); color: var(--muted); }
+  .revbar span.now { background: var(--power-bg); color: var(--power); }
+
+  .facts {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 32px 0 0;
+  }
+  .fact { background: var(--ground); padding: 14px 16px; }
+  .fact dt {
+    font-family: var(--f-display); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .13em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 5px;
+  }
+  .fact dd {
+    font-family: var(--f-mono); font-size: 14px; font-weight: 600;
+    margin: 0; color: var(--ink);
+  }
+
+  section { padding-top: 64px; }
+
+  .sheet-head {
+    display: flex; align-items: baseline; gap: 16px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 12px; margin-bottom: 28px;
+  }
+  .sheet-no {
+    font-family: var(--f-mono); font-size: 12px; font-weight: 600;
+    letter-spacing: .06em; color: var(--power); white-space: nowrap;
+  }
+  h2 {
+    font-family: var(--f-display); font-weight: 600;
+    font-size: clamp(23px, 3vw, 30px);
+    letter-spacing: -.015em; line-height: 1.15;
+    margin: 0; text-wrap: balance;
+  }
+  h3 {
+    font-family: var(--f-display); font-weight: 600; font-size: 18px;
+    letter-spacing: -.006em; margin: 38px 0 12px;
+  }
+
+  p { margin: 0 0 18px; max-width: 68ch; }
+  ul, ol { max-width: 66ch; padding-left: 22px; margin: 0 0 18px; }
+  li { margin-bottom: 9px; }
+
+  a { color: var(--signal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+
+  code {
+    font-family: var(--f-mono); font-size: .87em;
+    background: var(--surface-alt); padding: 1px 5px;
+    border-radius: 2px; color: var(--ink);
+  }
+  strong { font-weight: 600; }
+
+  .note {
+    border-left: 3px solid var(--power); background: var(--power-bg);
+    padding: 16px 20px; margin: 0 0 24px; font-size: 16px;
+  }
+  .note.warn { border-left-color: var(--critical); background: var(--critical-bg); }
+  .note.info { border-left-color: var(--signal); background: var(--signal-bg); }
+  .note p { margin: 0; max-width: 62ch; }
+  .note p + p { margin-top: 10px; }
+  .note-label {
+    display: block; font-family: var(--f-display);
+    font-size: 10.5px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; margin-bottom: 6px; color: var(--power);
+  }
+  .note.warn .note-label { color: var(--critical); }
+  .note.info .note-label { color: var(--signal); }
+
+  .scroller {
+    overflow-x: auto; margin: 0 0 26px;
+    border: 1px solid var(--rule); background: var(--surface);
+  }
+  table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14.5px; }
+  caption {
+    text-align: left; font-family: var(--f-display);
+    font-size: 11px; font-weight: 600; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--muted);
+    padding: 12px 16px 10px; border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-family: var(--f-display); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    text-align: left; padding: 10px 16px;
+    border-bottom: 1px solid var(--rule); white-space: nowrap;
+  }
+  td {
+    padding: 9px 16px; border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top; font-family: var(--f-body); color: var(--ink-soft);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.pin, td.net {
+    font-family: var(--f-mono); font-size: 13px; font-weight: 600;
+    color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  td.num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: 13px; }
+
+  .tag {
+    display: inline-block; font-family: var(--f-display);
+    font-size: 9.5px; font-weight: 700; letter-spacing: .1em;
+    text-transform: uppercase; padding: 2px 7px;
+    border-radius: 2px; white-space: nowrap;
+  }
+  .tag-ok    { background: var(--signal-bg);   color: var(--signal); }
+  .tag-add   { background: var(--power-bg);    color: var(--power); }
+  .tag-avoid { background: var(--critical-bg); color: var(--critical); }
+
+  figure { margin: 0 0 28px; border: 1px solid var(--rule); background: var(--surface); }
+  .figbody { overflow-x: auto; padding: 26px 22px 8px; }
+  figure svg { display: block; max-width: 100%; height: auto; min-width: 620px; margin: 0 auto; }
+  figcaption {
+    font-size: 14.5px; color: var(--muted);
+    padding: 14px 22px 18px; border-top: 1px solid var(--rule-soft); max-width: none;
+  }
+  figcaption b { color: var(--ink-soft); font-weight: 600; }
+
+  .svg-box  { fill: var(--surface-alt); stroke: currentColor; stroke-width: 1.25; }
+  .svg-lbl  { font-family: "Archivo", sans-serif; font-size: 12.5px; font-weight: 600; fill: currentColor; }
+  .svg-sub  { font-family: "JetBrains Mono", monospace; font-size: 10.5px; fill: currentColor; opacity: .72; }
+  .svg-ann  { font-family: "JetBrains Mono", monospace; font-size: 10.5px; font-weight: 600; }
+  .wire-pwr { stroke: var(--power);  stroke-width: 3.5; fill: none; stroke-linejoin: round; stroke-linecap: round; }
+  .wire-sig { stroke: var(--signal); stroke-width: 1.6; fill: none; stroke-linejoin: round; }
+  .wire-thin{ stroke: currentColor; stroke-width: 1.3; fill: none; stroke-linejoin: round; }
+
+  details {
+    border: 1px solid var(--rule); background: var(--surface);
+    padding: 14px 18px; margin: 0 0 20px;
+  }
+  summary {
+    font-family: var(--f-display); font-weight: 600;
+    font-size: 15px; cursor: pointer; color: var(--ink);
+  }
+  details[open] summary { margin-bottom: 12px; }
+  details p:last-child, details ul:last-child { margin-bottom: 0; }
+
+  .checklist { list-style: none; padding-left: 0; max-width: 68ch; }
+  .checklist li { padding-left: 30px; position: relative; margin-bottom: 14px; }
+  .checklist li::before {
+    content: ""; position: absolute; left: 0; top: 7px;
+    width: 13px; height: 13px;
+    border: 1.5px solid var(--power); border-radius: 2px;
+  }
+
+  footer {
+    margin-top: 80px; padding-top: 24px;
+    border-top: 2px solid var(--ink);
+    font-size: 14px; color: var(--muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  @media (max-width: 640px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 18px 80px; }
+    .masthead { padding-top: 48px; }
+    .sheet-head { flex-direction: column; gap: 6px; }
+  }
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Interference Patterns · A Resonant Space · WPI IQP</p>
+  <h1>Hexagon Node Controller</h1>
+  <p class="standfirst">Schematic and PCB plan for one five-actuator wall node: an ESP32 driving ten BTS7960B half-bridges paired into five H-bridges, with proximity sensors, homing switches, and a lighting output.</p>
+
+  <div class="revbar">
+    <span>Rev A — IBT-2 modules, potentiometers</span>
+    <span class="now">Rev B — bare half-bridges, limit switches</span>
+  </div>
+
+  <dl class="facts">
+    <div class="fact"><dt>Controller</dt><dd>ESP32-WROOM-32</dd></div>
+    <div class="fact"><dt>Actuators</dt><dd>5 per node</dd></div>
+    <div class="fact"><dt>Half-bridges</dt><dd>BTS7960B ×10</dd></div>
+    <div class="fact"><dt>PWM</dt><dd>20 kHz LEDC</dd></div>
+    <div class="fact"><dt>GPIO used</dt><dd>22 of 23</dd></div>
+    <div class="fact"><dt>Position sense</dt><dd>Homing only</dd></div>
+  </dl>
+</header>
+
+<!-- ===================== SHEET 1 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 1</span>
+    <h2>This is now a power board</h2>
+  </div>
+
+  <p>Rev A of this document assumed IBT-2 modules wired off-board, which kept motor current entirely off the PCB. The V2 schematic places ten bare BTS7960B chips on the board itself. That is a legitimate choice — it is more compact, cheaper per node, and removes twenty flying leads — but it inverts the central design constraint, so most of what follows changed with it.</p>
+
+  <p><strong>Motor current now crosses your PCB.</strong> Three consequences you are committing to:</p>
+
+  <ul>
+    <li><strong>Copper is your heatsink.</strong> The BTS7960B in TO263-7 dissipates through its tab. Each conducting switch drops roughly <code>I²·R<sub>DS(on)</sub></code>, and at ~16 mΩ that's about 0.4 W at 5 A and 1.6 W at a 10 A stall — per switch, with two in the path at any moment. You need a real pour under every tab, not a trace.</li>
+    <li><strong>Two-ounce copper, not one.</strong> At 1 oz the pours and the motor runs both have to be roughly twice as wide for the same temperature rise. The cost difference per board is small; the layout difference is not.</li>
+    <li><strong>Ground becomes a layout problem, not a wiring problem.</strong> With modules, keeping motor return out of the logic reference was a matter of how you ran wires. On-board, it is a matter of how you draw pours — and a mistake there is a respin rather than a re-crimp.</li>
+  </ul>
+
+  <p>What the board owns now: the ESP32, ten half-bridges and their gate-side passives, all connectors, the enable/disarm circuit, and the sensor conditioning. Sheet 9 covers the layout rules that follow from this.</p>
+
+  <div class="note info">
+    <span class="note-label">Out of scope</span>
+    <p>ESP32 supply is handled separately and is not addressed here. The rails below cover the motor bus, the sensor rail, and the lighting rail only.</p>
+  </div>
+</section>
+
+<!-- ===================== SHEET 2 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 2</span>
+    <h2>Rails, protection, and the single-point ground</h2>
+  </div>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 880 430" role="img" aria-label="Power distribution: motor supply passes through a fuse and reverse-polarity protection to ten half-bridges and the actuators, while a step-down converter feeds the sensor rail and a second converter feeds the LED strip, with all returns meeting at one star ground.">
+        <defs>
+          <marker id="ah-p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M0,1 L10,5 L0,9 z" fill="var(--power)"/>
+          </marker>
+          <marker id="ah-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,1 L10,5 L0,9 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <rect class="svg-box" x="24" y="168" width="96" height="72" rx="2"/>
+        <text class="svg-lbl" x="72" y="198" text-anchor="middle">J1</text>
+        <text class="svg-sub" x="72" y="216" text-anchor="middle">V_MOT</text>
+
+        <path class="wire-pwr" d="M120,204 L156,204" marker-end="url(#ah-p)"/>
+        <rect class="svg-box" x="164" y="176" width="112" height="56" rx="2"/>
+        <text class="svg-lbl" x="220" y="199" text-anchor="middle">Fuse + RP</text>
+        <text class="svg-sub" x="220" y="216" text-anchor="middle">15 A · P-FET</text>
+
+        <!-- motor lane -->
+        <path class="wire-pwr" d="M276,204 L306,204 L306,88 L352,88" marker-end="url(#ah-p)"/>
+        <rect class="svg-box" x="360" y="56" width="168" height="64" rx="2"/>
+        <text class="svg-lbl" x="444" y="83" text-anchor="middle">10 × BTS7960B</text>
+        <text class="svg-sub" x="444" y="101" text-anchor="middle">5 H-bridges</text>
+        <path class="wire-pwr" d="M528,88 L616,88" marker-end="url(#ah-p)"/>
+        <rect class="svg-box" x="624" y="56" width="160" height="64" rx="2"/>
+        <text class="svg-lbl" x="704" y="83" text-anchor="middle">5 × actuator</text>
+        <text class="svg-sub" x="704" y="101" text-anchor="middle">J13–J17</text>
+
+        <!-- sensor lane -->
+        <path class="wire-thin" d="M306,204 L352,204" marker-end="url(#ah-n)"/>
+        <rect class="svg-box" x="360" y="176" width="168" height="56" rx="2"/>
+        <text class="svg-lbl" x="444" y="199" text-anchor="middle">PS1 → 3.3 V</text>
+        <text class="svg-sub" x="444" y="216" text-anchor="middle">LM2596</text>
+        <path class="wire-thin" d="M528,204 L616,204" marker-end="url(#ah-n)"/>
+        <rect class="svg-box" x="624" y="176" width="160" height="56" rx="2"/>
+        <text class="svg-lbl" x="704" y="199" text-anchor="middle">Sensor rail</text>
+        <text class="svg-sub" x="704" y="216" text-anchor="middle">5 IR + 5 limit</text>
+
+        <!-- LED lane -->
+        <path class="wire-thin" d="M306,204 L306,306 L352,306" marker-end="url(#ah-n)"/>
+        <rect class="svg-box" x="360" y="280" width="168" height="52" rx="2"/>
+        <text class="svg-lbl" x="444" y="302" text-anchor="middle">PS2 → 5 V</text>
+        <text class="svg-sub" x="444" y="320" text-anchor="middle">second converter</text>
+        <path class="wire-thin" d="M528,306 L616,306" marker-end="url(#ah-n)"/>
+        <rect class="svg-box" x="624" y="280" width="160" height="52" rx="2"/>
+        <text class="svg-lbl" x="704" y="302" text-anchor="middle">LED strip</text>
+        <text class="svg-sub" x="704" y="320" text-anchor="middle">J12</text>
+
+        <!-- star ground -->
+        <rect class="svg-box" x="24" y="352" width="140" height="44" rx="2" stroke-dasharray="4 3"/>
+        <text class="svg-lbl" x="94" y="371" text-anchor="middle">STAR GROUND</text>
+        <text class="svg-sub" x="94" y="387" text-anchor="middle">one point only</text>
+        <path class="wire-thin" d="M72,240 L72,346" marker-end="url(#ah-n)"/>
+
+        <path class="wire-pwr" d="M360,104 L332,104 L332,366 L176,366" marker-end="url(#ah-p)"/>
+        <text class="svg-ann" x="342" y="336" fill="var(--power)">motor return</text>
+
+        <path class="wire-thin" d="M784,204 L820,204 L820,384 L176,384" marker-end="url(#ah-n)"/>
+        <path class="wire-thin" d="M704,332 L704,384"/>
+        <text class="svg-ann" x="420" y="378">logic return</text>
+      </svg>
+    </div>
+    <figcaption><b>Two return paths, one meeting point.</b> Motor return is a wide pour; logic return is a thin one. They join at a single node at the input terminal. On a board where both currents share copper, any second connection between the pours puts actuator current through your sensor reference.</figcaption>
+  </figure>
+
+  <div class="scroller">
+    <table>
+      <caption>Rails</caption>
+      <thead><tr><th>Rail</th><th>Source</th><th>Feeds</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td class="net">V_MOT</td><td>J1, via fuse + RP</td><td>All ten <code>VS</code> pins</td><td>Sized by actuator stall — still unconfirmed</td></tr>
+        <tr><td class="net">+3V3</td><td>PS1 (LM2596)</td><td>5 IR modules, limit pull-ups</td><td>~110 mA; the LM2596 has ample headroom</td></tr>
+        <tr><td class="net">+5V</td><td>PS2 — <em>not yet on the schematic</em></td><td>LED strip only</td><td>See Sheet 6</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Protection you don't have yet</h3>
+
+  <ul>
+    <li><strong>A fuse on J1.</strong> Ten half-bridges rated 43 A apiece will happily deliver whatever your supply can source into a fault. Nothing in firmware can prevent that.</li>
+    <li><strong>Reverse-polarity protection.</strong> J1 is a bare two-pin terminal. Backwards once, on a board with ten unprotected power ICs, and the node is gone. A P-channel MOSFET in the high side costs almost nothing and drops far less than a Schottky.</li>
+    <li><strong>10 kΩ pull-down on <code>DRV_EN</code>.</strong> Covered on Sheet 4, but it belongs on this list too — it is a power-domain safety device, not a logic nicety.</li>
+  </ul>
+
+  <h3>Supply sizing</h3>
+
+  <p>Five simultaneous stalls is the honest worst case and it is a large number. Rather than buy a supply for a state that should never occur, make it unreachable in firmware — slew-limit every duty change, cap concurrent motion, and stagger starts. A ripple is a staggered start by definition, so this costs nothing in the effects you actually want.</p>
+
+  <p>Then add <strong>220–470 µF plus 100 nF at each chip's <code>VS</code></strong>, physically adjacent. The datasheet requires local bulk capacitance; without it the switching edge is pulled through the whole supply path and the chips do not survive long.</p>
+</section>
+
+<!-- ===================== SHEET 3 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 3</span>
+    <h2>Pin map</h2>
+  </div>
+
+  <p>Twenty-two of the twenty-three usable GPIOs are assigned. Symbol pin numbers match the DevKit V1 footprint in your library, so this table can be wired directly.</p>
+
+  <div class="scroller">
+    <table>
+      <caption>Motor PWM — <code>IN</code> (pin 2) of each half-bridge</caption>
+      <thead><tr><th>Net</th><th>GPIO</th><th>Symbol pin</th><th>Chip</th></tr></thead>
+      <tbody>
+        <tr><td class="net">M0_LPWM</td><td class="pin">27</td><td class="pin">25 (D27)</td><td>U11 — Driver 0 Left</td></tr>
+        <tr><td class="net">M0_RPWM</td><td class="pin">13</td><td class="pin">28 (D13)</td><td>U2 — Driver 0 Right</td></tr>
+        <tr><td class="net">M1_LPWM</td><td class="pin">25</td><td class="pin">23 (D25)</td><td>U10 — Driver 1 Left</td></tr>
+        <tr><td class="net">M1_RPWM</td><td class="pin">26</td><td class="pin">24 (D26)</td><td>U3 — Driver 1 Right</td></tr>
+        <tr><td class="net">M2_LPWM</td><td class="pin">32</td><td class="pin">21 (D32)</td><td>U9 — Driver 2 Left</td></tr>
+        <tr><td class="net">M2_RPWM</td><td class="pin">33</td><td class="pin">22 (D33)</td><td>U4 — Driver 2 Right</td></tr>
+        <tr><td class="net">M3_LPWM</td><td class="pin">19</td><td class="pin">10 (D19)</td><td>U8 — Driver 3 Left</td></tr>
+        <tr><td class="net">M3_RPWM</td><td class="pin">18</td><td class="pin">9 (D18)</td><td>U5 — Driver 3 Right</td></tr>
+        <tr><td class="net">M4_LPWM</td><td class="pin">23</td><td class="pin">15 (D23)</td><td>U7 — Driver 4 Left</td></tr>
+        <tr><td class="net">M4_RPWM</td><td class="pin">22</td><td class="pin">14 (D22)</td><td>U6 — Driver 4 Right</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="scroller">
+    <table>
+      <caption>Control, sensing, and lighting</caption>
+      <thead><tr><th>Net</th><th>GPIO</th><th>Symbol pin</th><th>To</th><th>Why this pin</th></tr></thead>
+      <tbody>
+        <tr><td class="net">DRV_EN</td><td class="pin">2</td><td class="pin">4 (D2)</td><td><code>INH</code> ×10</td><td>Must be low at boot — same state as disarmed</td></tr>
+        <tr><td class="net">LED_DATA</td><td class="pin">4</td><td class="pin">5 (D4)</td><td>J12.2</td><td>Clean pin, RMT-capable</td></tr>
+        <tr><td class="net">IR0_DATA</td><td class="pin">36</td><td class="pin">17 (VP)</td><td>J2.1</td><td>Input-only — needs external pull-up</td></tr>
+        <tr><td class="net">IR1_DATA</td><td class="pin">39</td><td class="pin">18 (VN)</td><td>J3.1</td><td>Input-only — needs external pull-up</td></tr>
+        <tr><td class="net">IR2_DATA</td><td class="pin">34</td><td class="pin">19 (D34)</td><td>J4.1</td><td>Input-only — needs external pull-up</td></tr>
+        <tr><td class="net">IR3_DATA</td><td class="pin">35</td><td class="pin">20 (D35)</td><td>J5.1</td><td>Input-only — needs external pull-up</td></tr>
+        <tr><td class="net">IR4_DATA</td><td class="pin">5</td><td class="pin">8 (D5)</td><td>J6.1</td><td>Wants HIGH at boot; HW-201 idles HIGH</td></tr>
+        <tr><td class="net">L0_DATA</td><td class="pin">16</td><td class="pin">6 (RX2)</td><td>J7.1</td><td>Internal pull-up available</td></tr>
+        <tr><td class="net">L1_DATA</td><td class="pin">17</td><td class="pin">7 (TX2)</td><td>J8.1</td><td>Internal pull-up</td></tr>
+        <tr><td class="net">L2_DATA</td><td class="pin">21</td><td class="pin">11 (D21)</td><td>J9.1</td><td>Internal pull-up</td></tr>
+        <tr><td class="net">L3_DATA</td><td class="pin">14</td><td class="pin">26 (D14)</td><td>J10.1</td><td>Internal pull-up</td></tr>
+        <tr><td class="net">L4_DATA</td><td class="pin">15</td><td class="pin">3 (D15)</td><td>J11.1</td><td>Wants HIGH at boot; pull-up provides it</td></tr>
+        <tr><td class="net">—</td><td class="pin">12</td><td class="pin">27 (D12)</td><td><span class="tag tag-avoid">leave open</span></td><td>See below</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <span class="note-label">GPIO12 is a trap, not a spare</span>
+    <p><code>GPIO12</code> is MTDI: held high at boot, the ESP32 sets its internal flash regulator to 1.8 V and fails to start. Both candidate signals fail here — an IR module idles HIGH whenever nothing is in front of it, and a limit switch is <em>most</em> likely to be closed at power-on, because that is the home position. Route nothing to this pin.</p>
+  </div>
+
+  <div class="note">
+    <span class="note-label">Prerequisite: rewire the limit switches</span>
+    <p>J7–J11 currently bridge <strong>3.3 V → L_DATA</strong>. Change them to <strong>switch → GND</strong> and enable the internal pull-ups. That deletes five external resistors, satisfies GPIO15's boot requirement, and makes a cable chafed against the frame read as "at limit" rather than as a false idle.</p>
+  </div>
+
+  <p>The four input-only pins (36, 39, 34, 35) have no internal pull-ups of any kind, so each of those IR lines needs a <strong>10 kΩ to 3.3 V</strong> on the board. The HW-201 drives its output actively; the resistor is there so an unplugged connector doesn't leave a floating input.</p>
+</section>
+
+<!-- ===================== SHEET 4 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 4</span>
+    <h2>Two half-bridges make one H-bridge</h2>
+  </div>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 800 380" role="img" aria-label="Two BTS7960B half-bridges connected between the motor rail and ground, each driving one terminal of the actuator, with separate PWM inputs and a shared enable line.">
+        <!-- rails -->
+        <path class="wire-pwr" d="M96,56 L704,56"/>
+        <text class="svg-ann" x="400" y="44" text-anchor="middle" fill="var(--power)">V_MOT</text>
+        <path class="wire-pwr" d="M96,306 L704,306"/>
+        <text class="svg-ann" x="400" y="330" text-anchor="middle" fill="var(--power)">GND</text>
+
+        <!-- left chip -->
+        <rect class="svg-box" x="132" y="104" width="140" height="152" rx="2"/>
+        <text class="svg-lbl" x="202" y="172" text-anchor="middle">U11</text>
+        <text class="svg-sub" x="202" y="190" text-anchor="middle">half-bridge</text>
+        <text class="svg-sub" x="202" y="122" text-anchor="middle">VS</text>
+        <text class="svg-sub" x="202" y="248" text-anchor="middle">GND</text>
+        <text class="svg-sub" x="140" y="146">IN</text>
+        <text class="svg-sub" x="140" y="216">INH</text>
+        <text class="svg-sub" x="264" y="172" text-anchor="end">OUT</text>
+        <path class="wire-pwr" d="M202,104 L202,56"/>
+        <path class="wire-pwr" d="M202,256 L202,306"/>
+
+        <!-- right chip -->
+        <rect class="svg-box" x="528" y="104" width="140" height="152" rx="2"/>
+        <text class="svg-lbl" x="598" y="172" text-anchor="middle">U2</text>
+        <text class="svg-sub" x="598" y="190" text-anchor="middle">half-bridge</text>
+        <text class="svg-sub" x="598" y="122" text-anchor="middle">VS</text>
+        <text class="svg-sub" x="598" y="248" text-anchor="middle">GND</text>
+        <text class="svg-sub" x="660" y="146" text-anchor="end">IN</text>
+        <text class="svg-sub" x="660" y="216" text-anchor="end">INH</text>
+        <text class="svg-sub" x="536" y="172">OUT</text>
+        <path class="wire-pwr" d="M598,104 L598,56"/>
+        <path class="wire-pwr" d="M598,256 L598,306"/>
+
+        <!-- motor -->
+        <path class="wire-pwr" d="M272,180 L362,180"/>
+        <path class="wire-pwr" d="M528,180 L438,180"/>
+        <circle class="svg-box" cx="400" cy="180" r="38"/>
+        <text class="svg-lbl" x="400" y="185" text-anchor="middle">M</text>
+        <text class="svg-sub" x="400" y="240" text-anchor="middle">actuator</text>
+
+        <!-- control -->
+        <path class="wire-sig" d="M52,140 L132,140"/>
+        <text class="svg-ann" x="52" y="132" fill="var(--signal)">M0_LPWM</text>
+        <path class="wire-sig" d="M52,210 L132,210"/>
+        <text class="svg-ann" x="52" y="202" fill="var(--signal)">DRV_EN</text>
+        <path class="wire-sig" d="M748,140 L668,140"/>
+        <text class="svg-ann" x="748" y="132" text-anchor="end" fill="var(--signal)">M0_RPWM</text>
+        <path class="wire-sig" d="M748,210 L668,210"/>
+        <text class="svg-ann" x="748" y="202" text-anchor="end" fill="var(--signal)">DRV_EN</text>
+      </svg>
+    </div>
+    <figcaption><b>One motor, two chips.</b> Each half-bridge pulls its own actuator terminal to V_MOT or to ground; the actuator sees the difference. This is why five motors need ten chips, and it is exactly the circuit inside an IBT-2 module.</figcaption>
+  </figure>
+
+  <div class="scroller">
+    <table>
+      <caption>Resulting behavior</caption>
+      <thead><tr><th>DRV_EN</th><th>LPWM</th><th>RPWM</th><th>Actuator</th></tr></thead>
+      <tbody>
+        <tr><td class="num">LOW</td><td class="num">×</td><td class="num">×</td><td>Coast — both outputs high-impedance</td></tr>
+        <tr><td class="num">HIGH</td><td class="num">PWM</td><td class="num">0</td><td>Drive one direction</td></tr>
+        <tr><td class="num">HIGH</td><td class="num">0</td><td class="num">PWM</td><td>Drive the other direction</td></tr>
+        <tr><td class="num">HIGH</td><td class="num">0</td><td class="num">0</td><td><strong>Brake</strong> — both terminals to ground</td></tr>
+        <tr><td class="num">HIGH</td><td class="num">1</td><td class="num">1</td><td>Brake — both terminals to V_MOT</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note info">
+    <span class="note-label">Zero duty is a brake, not a coast</span>
+    <p>Writing 0 to both PWM channels ties both actuator terminals to ground, which brakes. The only way to truly coast is to drop <code>DRV_EN</code>. This is fine — and during a direction reversal it is preferable, since braking decays winding current faster than coasting — but it is worth knowing that "stopped" and "released" are different commands on this topology.</p>
+  </div>
+
+  <h3>Per-chip connections (×10)</h3>
+
+  <div class="scroller">
+    <table>
+      <thead><tr><th>Pin</th><th>Connects to</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td class="net">VS (7)</td><td class="net">V_MOT</td><td>Bulk cap 220–470 µF + 100 nF adjacent</td></tr>
+        <tr><td class="net">GND (1)</td><td class="net">GND</td><td>Motor-side pour</td></tr>
+        <tr><td class="net">OUT (4)</td><td>Actuator terminal</td><td>To J13–J17 — <span class="tag tag-add">missing</span></td></tr>
+        <tr><td class="net">IN (2)</td><td class="net">Mn_LPWM / Mn_RPWM</td><td>3.3 V logic drives it directly</td></tr>
+        <tr><td class="net">INH (3)</td><td class="net">DRV_EN</td><td>All ten on one net</td></tr>
+        <tr><td class="net">SR (5)</td><td>10 kΩ → GND</td><td>Sets slew rate — <span class="tag tag-add">missing</span></td></tr>
+        <tr><td class="net">IS (6)</td><td>Open, 1 kΩ pad DNP</td><td>See below</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Note there is <strong>no <code>VCC</code> pin</strong> on the bare chip. Wiring guides that show a logic supply are describing the IBT-2 module's header, not the IC. <code>IN</code> and <code>INH</code> are referenced to ground and take 3.3 V logic as-is, so no level shifting is needed anywhere on the motor side.</p>
+
+  <h3>DRV_EN</h3>
+
+  <p>One net to all ten <code>INH</code> pins gives a hardware kill that does not depend on the PWM peripheral or on firmware being sane: pull it low and every bridge goes high-impedance regardless of what the LEDC channels are doing. It covers a hung sketch, a misconfigured timer, and the boot window before <code>setup()</code> runs. Three things make it real:</p>
+
+  <ul>
+    <li><strong>A 10 kΩ pull-down on the PCB.</strong> Never rely on a GPIO's reset state. This resistor is what guarantees disarmed at power-on and disarmed when the ESP32 is unplugged.</li>
+    <li><strong>An e-stop in series</strong> — a normally-closed mushroom button breaking the net, so opening it lets the pull-down disarm everything. Two-pin header on the board, jumpered for bench work.</li>
+    <li><strong>A firmware watchdog</strong> that drops the line if the control loop misses its deadline.</li>
+  </ul>
+
+  <details>
+    <summary>Why the current-sense pins stay unpopulated</summary>
+    <p>The BTS7960B reports output current at <code>IS</code> as a scaled current source, nominally 1:8500. The specified spread on that ratio is <strong>3000 to 14000</strong>. Through a 1 kΩ resistor, a 3 A load therefore reads anywhere from 0.21 V to 1.00 V depending on which chip you happened to solder — a 4.7× uncertainty that no software calibration constant can fix across twenty chips.</p>
+    <p>Worse, the failure direction is dangerous. A stalled actuator at 10 A on a low-ratio chip produces 3.3 V, already at the ESP32's absolute maximum; at 20 A the pin is destroyed. Reading these safely would need a smaller sense resistor plus a 3.3 V zener clamp and series resistor.</p>
+    <p>Leave the pads unpopulated and detect stalls another way. Sheet 6 covers what is available without position feedback.</p>
+  </details>
+</section>
+
+<!-- ===================== SHEET 5 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 5</span>
+    <h2>Sensor interfaces</h2>
+  </div>
+
+  <h3>Proximity — HW-201 ×5</h3>
+
+  <p>One module per hexagon on a 3-pin connector carrying 3.3 V, ground, and the comparator output. <strong>Power them from 3.3 V, not 5 V.</strong> The LM393 output swings to its supply rail and ESP32 pins are not 5 V tolerant, so a 5 V-fed module puts 5 V straight into the GPIO. At 3.3 V the comparator works fine and detection range shortens slightly, which you recover with the module's trimpot.</p>
+
+  <div class="scroller">
+    <table>
+      <caption>Per IR channel (×5)</caption>
+      <thead><tr><th>Part</th><th>Value</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td class="net">R_pullup</td><td class="num">10 kΩ → 3.3 V</td><td>Required on GPIO 36/39/34/35 which have none internally</td></tr>
+        <tr><td class="net">R_series</td><td class="num">220 Ω</td><td>At the connector — limits current if a module is plugged in reversed</td></tr>
+        <tr><td class="net">C_filt</td><td class="num">10 nF → GND</td><td>Suppresses edge noise on long harness runs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Treat each channel as active-low with time hysteresis: require the line to hold a new state for ~30 ms before accepting it. The comparator has no hysteresis of its own, so a target hovering at the threshold will chatter, and a hexagon that flutters looks worse than one that responds slowly.</p>
+
+  <div class="note warn">
+    <span class="note-label">Known limitation</span>
+    <p>The HW-201 is reflectivity-dependent — dark clothing absorbs IR and may not trigger it at all. On a campus, that is a large fraction of your audience. Budget for the alternative now: two spare pins broken out as an I²C header plus a TCA9548A footprint makes VL53L1X time-of-flight sensors a populate option rather than a respin.</p>
+  </div>
+
+  <h3>Homing switches ×5</h3>
+
+  <p>Wired switch-to-ground with internal pull-ups, as Sheet 3 requires. Add <strong>1 kΩ series and 100 nF to ground</strong> at each input for debounce — mechanical switches bounce for several milliseconds, and an RC there is cheaper than the firmware to handle it. Debounce in software as well; both together is not redundant when the cable run is metres long inside a metal frame.</p>
+
+  <h3>Lighting</h3>
+
+  <p>J12 pin 1 is currently on <code>VDD</code>, the motor rail. <strong>WS2812s expect 5 V and 12 V destroys them immediately</strong> — this needs the separate 5 V converter from Sheet 2. Then add a 330 Ω series resistor on <code>LED_DATA</code> and 1000 µF across the strip's supply at the strip end.</p>
+
+  <p>One more mismatch: a 3.3 V data line into a 5 V WS2812 is marginal by spec and tends to work on the bench and fail in the installation. Either level-shift with a 74AHCT125, or use SK6812 strip, which tolerates 3.3 V logic reliably. If the strip exceeds roughly thirty LEDs, give it its own supply rather than the node converter — at full white these draw about 60 mA each.</p>
+</section>
+
+<!-- ===================== SHEET 6 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 6</span>
+    <h2>Position without position feedback</h2>
+  </div>
+
+  <p>Rev A specified a potentiometer per scissor. V2 replaces them with one limit switch per actuator. These are not equivalent instruments, and the difference decides which effects the wall can perform — so it is worth stating plainly rather than discovering during integration.</p>
+
+  <p>A limit switch reports <em>arrival at one end</em>. A potentiometer reports <em>where you are, continuously</em>. With switches alone, the only position the node knows for certain is fully-retracted; everything else is inferred from how long a motor has been commanded to run.</p>
+
+  <div class="scroller">
+    <table>
+      <caption>What this node can and cannot do</caption>
+      <thead><tr><th>Behavior</th><th>Status</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Recoil to fully retracted</td><td><span class="tag tag-ok">works</span></td><td>Drive until the switch closes</td></tr>
+        <tr><td>Ripple across the wall</td><td><span class="tag tag-ok">works</span></td><td>A ripple is staggered timing, not absolute position</td></tr>
+        <tr><td>Return to a mid-stroke pose</td><td><span class="tag tag-add">drifts</span></td><td>Dead-reckoned from run time; error accumulates</td></tr>
+        <tr><td>Recoil depth scaled to proximity</td><td><span class="tag tag-avoid">no</span></td><td>Needs continuous feedback, and the HW-201 is binary anyway</td></tr>
+        <tr><td>Detect a stalled or jammed scissor</td><td><span class="tag tag-avoid">no</span></td><td>No feedback to compare against the command</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The homing routine</h3>
+
+  <p>At boot, and periodically during idle, drive each actuator toward its switch at low duty until the switch closes. That point is position zero. From there, track position by integrating commanded run time against a calibrated travel rate.</p>
+
+  <p>Four things make that estimate drift: supply sag under load, stiction varying with temperature and wear, duty-to-speed nonlinearity near the floor, and the ramp itself (the first and last 150 ms of every move cover less distance than the middle). None are correctable without feedback, all are bounded by re-homing.</p>
+
+  <ul>
+    <li><strong>Re-home on a schedule</strong> — every few minutes of idle, or between visitor interactions. Nobody notices a wall settling to rest; everybody notices one whose ripple has gone lopsided.</li>
+    <li><strong>Re-home on surprise.</strong> If a switch closes when the model says the scissor is mid-stroke, the model is wrong. Trust the switch, reset the estimate, log it.</li>
+    <li><strong>Bound the far end in time,</strong> not position. With one switch you have one reference; full extension has to be a time limit with margin, or you drive into the mechanical stop.</li>
+  </ul>
+
+  <div class="note info">
+    <span class="note-label">If you want it back later</span>
+    <p>An MCP23017 moves all ten digital inputs onto two I²C pins and frees enough GPIO to put five potentiometers directly on ADC1 — no multiplexer needed, because <code>GPIO32/33</code> could then be released from motor duty. That is a board revision, not a rewrite, and the firmware change is confined to one sensor module. Leaving the I²C header from Sheet 5 on this board is what keeps that door open.</p>
+  </div>
+</section>
+
+<!-- ===================== SHEET 7 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 7</span>
+    <h2>End-stops that outlive the firmware</h2>
+  </div>
+
+  <p>The GPIO switches on Sheet 5 tell the controller where home is. They do not protect anything — if firmware hangs mid-move, nothing reads them. For that, put a normally-closed switch in series with the actuator lead and bridge it with a diode oriented to pass current the other way.</p>
+
+  <figure>
+    <div class="figbody">
+      <svg viewBox="0 0 760 250" role="img" aria-label="A motor circuit where two normally-closed limit switches sit in series with the actuator, each bypassed by a diode that allows current only in the direction that moves the actuator away from that end stop.">
+        <rect class="svg-box" x="26" y="76" width="118" height="66" rx="2"/>
+        <text class="svg-lbl" x="85" y="103" text-anchor="middle">H-bridge</text>
+        <text class="svg-sub" x="85" y="121" text-anchor="middle">OUT / OUT</text>
+
+        <g class="wire-pwr">
+          <path d="M144,94 L214,94"/>
+          <path d="M262,94 L360,94"/>
+          <path d="M408,94 L494,94"/>
+        </g>
+
+        <g class="wire-thin">
+          <circle cx="216" cy="94" r="3.2" fill="currentColor"/>
+          <circle cx="260" cy="94" r="3.2" fill="currentColor"/>
+          <path d="M216,94 L256,79"/>
+        </g>
+        <text class="svg-ann" x="238" y="128" text-anchor="middle">LS-RETRACT</text>
+        <text class="svg-sub" x="238" y="143" text-anchor="middle">N.C.</text>
+
+        <g class="wire-thin">
+          <path d="M216,94 L216,44 L360,44 L360,94"/>
+          <polygon points="278,36 278,52 294,44" fill="currentColor"/>
+          <path d="M294,36 L294,52" stroke-width="2.4"/>
+        </g>
+        <text class="svg-ann" x="286" y="27" text-anchor="middle" fill="var(--power)">D1 — passes extend</text>
+
+        <g class="wire-thin">
+          <circle cx="362" cy="94" r="3.2" fill="currentColor"/>
+          <circle cx="406" cy="94" r="3.2" fill="currentColor"/>
+          <path d="M362,94 L402,79"/>
+        </g>
+        <text class="svg-ann" x="384" y="128" text-anchor="middle">LS-EXTEND</text>
+        <text class="svg-sub" x="384" y="143" text-anchor="middle">N.C.</text>
+
+        <g class="wire-thin">
+          <path d="M362,94 L362,176 L494,176 L494,94"/>
+          <polygon points="440,168 440,184 424,176" fill="currentColor"/>
+          <path d="M424,168 L424,184" stroke-width="2.4"/>
+        </g>
+        <text class="svg-ann" x="432" y="200" text-anchor="middle" fill="var(--power)">D2 — passes retract</text>
+
+        <circle class="svg-box" cx="530" cy="94" r="34"/>
+        <text class="svg-lbl" x="530" y="99" text-anchor="middle">M</text>
+        <text class="svg-sub" x="600" y="90">linear</text>
+        <text class="svg-sub" x="600" y="104">actuator</text>
+
+        <path class="wire-pwr" d="M530,128 L530,222 L144,222 L144,124"/>
+      </svg>
+    </div>
+    <figcaption><b>A mechanical end-stop with no code path.</b> At full retraction <code>LS-RETRACT</code> opens and cuts the motor, but <code>D1</code> still conducts in the extend direction so the controller can always drive back out. The same logic mirrors at the other end. No GPIO, no interrupt, nothing that can fail to run.</figcaption>
+  </figure>
+
+  <p>This lives in the actuator harness, not on the PCB. The diodes carry full motor current, so use a Schottky rated well above stall — an SB540 for a typical 12 V unit, larger if your actuators draw more.</p>
+
+  <p>Because the same switch cannot be both in the motor's power path and readable by a 3.3 V GPIO, doing both at one end needs either a <strong>DPDT microswitch</strong> — one pole inline, one to the ESP32 — or two switches. The DPDT is the tidier answer and costs about a dollar more.</p>
+
+  <div class="note">
+    <span class="note-label">Check the actuator first</span>
+    <p>Most commercial 12 V linear actuators ship with exactly this circuit inside the housing. If yours do, skip it: the actuator cannot destroy itself, and your remaining risk is the <em>scissor linkage</em> binding before the actuator reaches its stroke end. Confirm the model before buying switches and diodes.</p>
+  </div>
+</section>
+
+<!-- ===================== SHEET 8 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 8</span>
+    <h2>Bill of materials, per node</h2>
+  </div>
+
+  <div class="scroller">
+    <table>
+      <caption>On board</caption>
+      <thead><tr><th>Qty</th><th>Part</th><th>Package</th><th>Function</th></tr></thead>
+      <tbody>
+        <tr><td class="num">10</td><td>BTS7960B</td><td>TO263-7</td><td>Half-bridges, paired into 5 H-bridges</td></tr>
+        <tr><td class="num">1</td><td>ESP32 DevKit V1</td><td>2 × 15 socket</td><td>Socketed, not soldered</td></tr>
+        <tr><td class="num">1</td><td>LM2596 module</td><td>headers</td><td>3.3 V sensor rail (PS1)</td></tr>
+        <tr><td class="num">1</td><td>5 V converter</td><td>headers</td><td>LED strip rail — <span class="tag tag-add">add</span></td></tr>
+        <tr><td class="num">1</td><td>74AHCT125</td><td>SOIC-14</td><td>3.3→5 V level shift for LED data</td></tr>
+        <tr><td class="num">1</td><td>P-MOSFET + zener</td><td>DPAK</td><td>Reverse-polarity protection</td></tr>
+        <tr><td class="num">1</td><td>Fuse holder + 15 A fuse</td><td>TH</td><td>On V_MOT</td></tr>
+        <tr><td class="num">5</td><td>Screw terminal 2-pin</td><td>5.0 mm</td><td>Actuators J13–J17 — <span class="tag tag-add">add</span></td></tr>
+        <tr><td class="num">5</td><td>Screw terminal 3-pin</td><td>5.0 mm</td><td>IR sensors J2–J6</td></tr>
+        <tr><td class="num">5</td><td>Screw terminal 2-pin</td><td>5.0 mm</td><td>Limit switches J7–J11</td></tr>
+        <tr><td class="num">1</td><td>Screw terminal 3-pin</td><td>5.0 mm</td><td>LED strip J12</td></tr>
+        <tr><td class="num">1</td><td>Header 2-pin</td><td>2.54 mm</td><td>E-stop loop, jumpered on the bench</td></tr>
+        <tr><td class="num">1</td><td>Header 4-pin</td><td>2.54 mm</td><td>I²C, for the ToF upgrade path</td></tr>
+        <tr><td class="num">10</td><td>220–470 µF, 35 V</td><td>electrolytic</td><td>Bulk at each <code>VS</code> — <span class="tag tag-add">add</span></td></tr>
+        <tr><td class="num">10</td><td>100 nF</td><td>0805</td><td>Ceramic at each <code>VS</code></td></tr>
+        <tr><td class="num">10</td><td>10 kΩ</td><td>0805</td><td><code>SR</code> slew-rate set — <span class="tag tag-add">add</span></td></tr>
+        <tr><td class="num">10</td><td>1 kΩ</td><td>0805, DNP</td><td><code>IS</code> pads, unpopulated</td></tr>
+        <tr><td class="num">1</td><td>10 kΩ</td><td>0805</td><td><code>DRV_EN</code> pull-down — do not omit</td></tr>
+        <tr><td class="num">5</td><td>10 kΩ</td><td>0805</td><td>IR pull-ups</td></tr>
+        <tr><td class="num">5</td><td>220 Ω</td><td>0805</td><td>IR series protection</td></tr>
+        <tr><td class="num">5</td><td>10 nF</td><td>0805</td><td>IR edge filter</td></tr>
+        <tr><td class="num">5</td><td>1 kΩ</td><td>0805</td><td>Limit switch debounce series</td></tr>
+        <tr><td class="num">5</td><td>100 nF</td><td>0805</td><td>Limit switch debounce cap</td></tr>
+        <tr><td class="num">1</td><td>330 Ω</td><td>0805</td><td>LED data series</td></tr>
+        <tr><td class="num">3</td><td>LED + 1 kΩ</td><td>0805</td><td>Rail indicators: V_MOT, 5 V, 3.3 V</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="scroller">
+    <table>
+      <caption>Off board</caption>
+      <thead><tr><th>Qty</th><th>Part</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>V_MOT supply</td><td>Sized once actuator stall current is known</td></tr>
+        <tr><td class="num">1</td><td>E-stop, N.C. mushroom</td><td>Breaks the <code>DRV_EN</code> loop</td></tr>
+        <tr><td class="num">5</td><td>Limit switch</td><td>DPDT if you also want the Sheet 7 hardware stop</td></tr>
+        <tr><td class="num">10</td><td>SB540 Schottky</td><td><em>Only if</em> the actuators lack internal end-stops</td></tr>
+        <tr><td class="num">1</td><td>1000 µF</td><td>At the LED strip's supply end</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===================== SHEET 9 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 9</span>
+    <h2>Layout guidance</h2>
+  </div>
+
+  <p>This is where the bare-chip decision is paid for. Rev A could be laid out carelessly and still work; this version cannot.</p>
+
+  <h3>Power</h3>
+
+  <ul>
+    <li><strong>2 oz copper.</strong> The upcharge is small and it roughly halves the width needed for a given temperature rise.</li>
+    <li><strong>Pour under every tab.</strong> The TO263-7 dissipates through its tab into the board. Give each chip a continuous pour of at least a square inch, and stitch it with thermal vias if you go four-layer. Ten chips in a row can share a pour per net, which is both easier and better.</li>
+    <li><strong>Pours, not traces, for V_MOT and motor ground.</strong> Route the actuator outputs as pours or wide polygons to the terminals; do not neck them down at a connector pad.</li>
+    <li><strong>Bulk caps within ~10 mm of their <code>VS</code> pin,</strong> with a short, wide return. A correctly chosen capacitor 40 mm away is doing much less than you think.</li>
+    <li><strong>Space the chips for heat.</strong> Ten packages shoulder to shoulder share one thermal mass and reach a much higher steady state than any one of them alone.</li>
+  </ul>
+
+  <h3>Ground</h3>
+
+  <ul>
+    <li><strong>Two pours, joined once,</strong> at the input terminal. Motor return on one, logic and sensor return on the other. Do not let the join happen incidentally under the ESP32.</li>
+    <li><strong>Keep PWM routing off the motor pours.</strong> Ten switching gate signals crossing a pour that is carrying tens of amps of switched current will couple. Run them on the logic side.</li>
+    <li><strong>Sensor connectors together,</strong> away from the power section, with their conditioning passives local to them.</li>
+  </ul>
+
+  <h3>Build and service</h3>
+
+  <ul>
+    <li><strong>Socket the ESP32.</strong> Female headers. These die and get swapped, and a student team will thank you.</li>
+    <li><strong>Silkscreen for someone on a ladder.</strong> Every connector labelled with its net and motor number — <code>M3 IR</code>, <code>M3 LIMIT</code>, <code>M3 OUT</code> — legible at arm's length. Twenty near-identical connectors per wall is how a miswire happens.</li>
+    <li><strong>Three rail LEDs.</strong> V_MOT, 5 V, 3.3 V. Turns most bring-up questions into a glance.</li>
+    <li><strong>Test points</strong> on <code>DRV_EN</code>, each rail, and at least one <code>OUT</code>.</li>
+    <li><strong>Mounting holes on your extrusion pitch,</strong> M4 clearance, landing on the 80/20 rails already in the build.</li>
+  </ul>
+</section>
+
+<!-- ===================== SHEET 10 ===================== -->
+<section>
+  <div class="sheet-head">
+    <span class="sheet-no">SHEET 10</span>
+    <h2>Open items before fabrication</h2>
+  </div>
+
+  <p>The pin map and topology are settled. These affect component ratings, copper width, and firmware constants — not the logic design.</p>
+
+  <ul class="checklist">
+    <li><strong>Actuator make and model.</strong> Still the top of the list. Voltage, stall current, stroke, full-travel time — and whether it has internal end-stops, which decides whether Sheet 7 gets built. Stall current also sets the fuse, the pour widths, and the supply.</li>
+    <li><strong>Confirm the ESP32 module variant.</strong> <code>GPIO16/17</code> carry two limit switches in this map and are consumed internally by PSRAM on a WROVER. On a WROVER, move them to <code>GPIO12</code>… which is unusable, so a WROVER would force the MCP23017 from Sheet 6.</li>
+    <li><strong>Travel time per scissor,</strong> retracted to extended, at a known duty. This is the calibration constant the entire dead-reckoning model rests on.</li>
+    <li><strong>LED strip length and type.</strong> Decides whether the node converter can feed it and whether you need the level shifter or SK6812s.</li>
+    <li><strong>Scissors per wall.</strong> The BOM says 13 per wall; five per node implies 20 across four nodes. This changes the node count and the Phase 4 topology.</li>
+  </ul>
+
+  <div class="note">
+    <span class="note-label">Firmware status</span>
+    <p>Phase 1 motor bring-up is written and matches this pin map exactly — the motor pairs are unchanged from Rev A, so no code edit is needed. Phases 2 and 3 will need the homing routine and drift model from Sheet 6, which did not exist in the Rev A plan.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Hexagon node controller, Rev B · one of four per wall · <em>Interference Patterns: A Resonant Space</em>, Worcester Polytechnic Institute. Revised against SchematicV2: ten bare half-bridges, limit switches in place of potentiometers, addressable lighting added.</p>
+</footer>
+
+</div>
+
+</body></html>

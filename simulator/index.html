@@ -1,0 +1,670 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Resonant Wall Simulator</title>
+<style>
+  :root {
+    --bg: #0a0d0f;
+    --panel: #14181b;
+    --panel-2: #191e21;
+    --inset: #0e1214;
+    --line: #262c30;
+    --line-soft: #1c2226;
+    --text: #e9edee;
+    --text-dim: #93a2a8;
+    --text-faint: #57666c;
+    --accent: #35c9b0;
+    --accent-soft: rgba(53, 201, 176, 0.14);
+    --boardA: #f2b544;
+    --boardB: #9b8cff;
+    --boardC: #56b6ff;
+    --motor-white: #f6f4ef;
+    --motor-red: #ff3535;
+    --crit: #ff5050;
+    --font-ui: "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    padding-inline: 20px;
+    padding-block: 22px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .app { width: 100%; max-width: 1180px; }
+
+  header.top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px 28px;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+    margin-bottom: 18px;
+  }
+
+  .title-block h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .title-block .sub {
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    max-width: 56ch;
+    line-height: 1.5;
+  }
+
+  .title-block .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .node-legend {
+    display: flex;
+    gap: 14px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .node-chip { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .node-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .card + .card { margin-top: 16px; }
+
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+  }
+
+  .banner {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .banner .pulse {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .banner.idle .pulse { background: var(--text-faint); box-shadow: none; }
+
+  .switch { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); cursor: pointer; user-select: none; }
+  .switch input { display: none; }
+  .switch .track {
+    width: 34px; height: 18px; border-radius: 10px; background: var(--line);
+    position: relative; transition: background 0.18s ease; flex-shrink: 0;
+  }
+  .switch .track::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%; background: var(--text-dim);
+    transition: transform 0.18s ease, background 0.18s ease;
+  }
+  .switch input:checked + .track { background: var(--accent-soft); border: 1px solid var(--accent); }
+  .switch input:checked + .track::after { transform: translateX(16px); background: var(--accent); }
+
+  .wall-frame {
+    background: var(--inset);
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 10px 4px 4px;
+  }
+
+  svg#wall { width: 100%; height: auto; display: block; touch-action: none; }
+
+  .motor polygon { cursor: crosshair; }
+  .motor text {
+    font-family: var(--font-mono);
+    font-size: 8.5px;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+  }
+
+  .row-label {
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    letter-spacing: 0.08em;
+    text-anchor: end;
+    dominant-baseline: middle;
+  }
+
+  .axis-caption {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-faint);
+    padding: 6px 10px 2px;
+    letter-spacing: 0.02em;
+  }
+
+  .target-chip {
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 10px 12px;
+    background: var(--panel-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .target-chip .label { color: var(--text-faint); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .target-chip .val { color: var(--text); }
+  .target-chip .val.rev { color: var(--crit); font-weight: 600; }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+  }
+  @media (max-width: 520px) { .controls { grid-template-columns: 1fr; } }
+
+  .control label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .control label span.v { font-family: var(--font-mono); color: var(--accent); }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--line);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--panel);
+    box-shadow: 0 0 0 1px var(--accent);
+    cursor: pointer;
+    margin-top: -5px;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 13px; height: 13px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--panel);
+    box-shadow: 0 0 0 1px var(--accent); cursor: pointer;
+  }
+
+  table.telemetry { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11.5px; }
+  table.telemetry th {
+    text-align: left; font-weight: 600; color: var(--text-faint);
+    font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 0 6px 6px; border-bottom: 1px solid var(--line);
+  }
+  table.telemetry td { padding: 5px 6px; border-bottom: 1px solid var(--line-soft); font-variant-numeric: tabular-nums; }
+  table.telemetry tr:last-child td { border-bottom: none; }
+  table.telemetry td.id { color: var(--text); }
+  table.telemetry .board-dot { width: 7px; height: 7px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+  .dir { font-weight: 600; }
+  .dir.FWD { color: var(--accent); }
+  .dir.REV { color: var(--crit); }
+  .dir.HOLD { color: var(--text-faint); }
+
+  .console {
+    background: var(--inset);
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    height: 230px;
+    overflow-y: auto;
+    padding: 8px 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.65;
+  }
+  .console::-webkit-scrollbar { width: 8px; }
+  .console::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+  .console .line { color: var(--text-dim); white-space: pre-wrap; word-break: break-word; }
+  .console .line .ts { color: var(--text-faint); }
+  .console .line .cmd-REVERSE { color: var(--crit); font-weight: 600; }
+  .console .line .cmd-FORWARD { color: var(--accent); font-weight: 600; }
+  .console .empty { color: var(--text-faint); font-style: italic; }
+
+  .clear-btn {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 3px 8px;
+    cursor: pointer;
+  }
+  .clear-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .note {
+    margin-top: 16px;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    line-height: 1.6;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+</style>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<div class="app">
+  <header class="top">
+    <div class="title-block">
+      <div class="eyebrow">IQP Resonant Space &middot; Master Node Simulation</div>
+      <h1>Resonant Wall</h1>
+      <div class="sub">Maps a tracked point on the wall face to per-motor extend / retract commands across the three ESP32 boards. Move the cursor over the hex field to stand in for the overhead camera's hand position.</div>
+    </div>
+    <div class="node-legend">
+      <span class="node-chip"><span class="node-dot" style="background:var(--boardA)"></span>Board&nbsp;A &middot; top&nbsp;&times;5</span>
+      <span class="node-chip"><span class="node-dot" style="background:var(--boardB)"></span>Board&nbsp;B &middot; mid&nbsp;&times;3</span>
+      <span class="node-chip"><span class="node-dot" style="background:var(--boardC)"></span>Board&nbsp;C &middot; low&nbsp;&times;5</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="col-main">
+      <div class="card">
+        <h2>Wall Face &mdash; Front Elevation</h2>
+
+        <div class="status-row">
+          <label class="switch">
+            <input type="checkbox" id="occupancy" checked>
+            <span class="track"></span>
+            TOF threshold crossed (hallway occupied)
+          </label>
+          <div class="banner" id="banner"><span class="pulse"></span><span id="bannerText">ACTIVE &mdash; camera tracking engaged</span></div>
+        </div>
+
+        <div class="wall-frame">
+          <svg id="wall" viewBox="-135 -60 487 282" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="axis-caption">
+            <span>&#9664; hallway entry</span>
+            <span>white = fully extended &middot; red = fully retracted</span>
+            <span>hallway exit &#9654;</span>
+          </div>
+        </div>
+
+        <div class="target-chip" id="targetChip">
+          <span class="label">Primary target</span>
+          <span class="val" id="targetVal">no active target &mdash; wall at rest</span>
+        </div>
+
+        <div class="controls">
+          <div class="control">
+            <label>Reactivity radius <span class="v" id="radiusVal">1.35&times;</span></label>
+            <input type="range" id="radiusSlider" min="60" max="220" value="135">
+          </div>
+          <div class="control">
+            <label>Response speed <span class="v" id="speedVal">0.15</span></label>
+            <input type="range" id="speedSlider" min="5" max="40" value="15">
+          </div>
+        </div>
+
+        <div class="note">Board C's motors are numbered to match Board A directly below them (M1,1&ndash;M1,5 over M3,1&ndash;M3,5); Board B's three sit nested in the middle gaps. Serial framing to the peripherals is out of scope here &mdash; this view only decides which motor gets which command.</div>
+      </div>
+    </div>
+
+    <div class="col-side">
+      <div class="card">
+        <h2>Motor Telemetry</h2>
+        <table class="telemetry">
+          <thead>
+            <tr><th>Motor</th><th>Ext%</th><th>PWM</th><th>Dir</th></tr>
+          </thead>
+          <tbody id="telemetryBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Serial Command Log <button class="clear-btn" id="clearLog">clear</button></h2>
+        <div class="console" id="console"><div class="empty">// waiting for a motor to cross a command threshold&hellip;</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var SVGNS = "http://www.w3.org/2000/svg";
+  var svg = document.getElementById("wall");
+
+  // Flat-top hex honeycomb.
+  var R = 44;                          // corner radius
+  var COL = 1.5 * R;                   // horizontal spacing between adjacent hex columns
+  var HALF = Math.sqrt(3) * R / 2;     // zig-zag offset (half a hex height)
+  var FULL = Math.sqrt(3) * R;         // vertical spacing between stacked boards
+
+  var BOARD_META = {
+    A: { color: "var(--boardA)", hex: "#f2b544", name: "Board A" },
+    B: { color: "var(--boardB)", hex: "#9b8cff", name: "Board B" },
+    C: { color: "var(--boardC)", hex: "#56b6ff", name: "Board C" }
+  };
+
+  function buildMotors() {
+    var list = [];
+    // Board A (top 5) — zig-zag: cols 1,3,5 high; cols 2,4 dropped half a hex.
+    for (var i = 0; i < 5; i++) {
+      list.push({ board: "A", row: 1, col: i + 1, cx: i * COL, cy: (i % 2 === 0) ? 0 : HALF });
+    }
+    // Board B (mid 3) — nested one full step below, sitting under the high hexes (cols 1,3,5 of A).
+    var bCols = [0, 2, 4];
+    for (var j = 0; j < 3; j++) {
+      list.push({ board: "B", row: 2, col: j + 1, cx: bCols[j] * COL, cy: FULL });
+    }
+    // Board C (bottom 5) — zig-zag mirroring A: cols 1,3,5 dropped low, cols 2,4 raised into the gaps.
+    for (var k = 0; k < 5; k++) {
+      list.push({ board: "C", row: 3, col: k + 1, cx: k * COL, cy: (k % 2 === 0) ? 2 * FULL : 1.5 * FULL });
+    }
+    list.forEach(function (m, idx) {
+      m.id = "M" + m.row + "," + m.col;
+      m.idx = idx;
+      m.ext = 1;
+      m.prevExt = 1;
+      m.state = "EXTENDED";
+      m.el = null;
+      m.textEl = null;
+    });
+    return list;
+  }
+
+  var motors = buildMotors();
+
+  function hexPoints(cx, cy, r) {
+    var pts = [];
+    for (var i = 0; i < 6; i++) {
+      var a = (Math.PI / 180) * (60 * i); // flat-top: vertices at 0,60,120,...
+      pts.push((cx + r * Math.cos(a)).toFixed(2) + "," + (cy + r * Math.sin(a)).toFixed(2));
+    }
+    return pts.join(" ");
+  }
+
+  function el(tag, attrs) {
+    var e = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  // row labels (placed at each board's vertical center)
+  var rowLabels = [
+    { y: HALF / 2, txt: "BOARD A", b: "A" },
+    { y: FULL, txt: "BOARD B", b: "B" },
+    { y: 2 * FULL - HALF / 2, txt: "BOARD C", b: "C" }
+  ];
+  rowLabels.forEach(function (r) {
+    var t = el("text", { class: "row-label", x: -22, y: r.y, fill: BOARD_META[r.b].hex });
+    t.textContent = r.txt;
+    svg.appendChild(t);
+  });
+
+  motors.forEach(function (m) {
+    var g = el("g", { class: "motor" });
+    var poly = el("polygon", {
+      points: hexPoints(m.cx, m.cy, R - 3),
+      fill: "#f6f4ef",
+      stroke: "#3a4045",
+      "stroke-width": "1.5"
+    });
+    var label = el("text", { x: m.cx, y: m.cy, fill: "#1a1a1a" });
+    label.textContent = m.id;
+    g.appendChild(poly);
+    g.appendChild(label);
+    svg.appendChild(g);
+    m.el = poly;
+    m.textEl = label;
+  });
+
+  // ---- pointer tracking ----
+  var pointer = { x: 2 * COL, y: FULL, inside: true, real: false }; // starts over M2,2
+
+  function toSvgPoint(evt) {
+    var pt = svg.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    var ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    return pt.matrixTransform(ctm.inverse());
+  }
+
+  svg.addEventListener("pointermove", function (evt) {
+    var p = toSvgPoint(evt);
+    if (!p) return;
+    pointer.x = p.x;
+    pointer.y = p.y;
+    pointer.inside = true;
+    pointer.real = true;
+  });
+  svg.addEventListener("pointerleave", function () {
+    pointer.inside = false;
+  });
+  svg.addEventListener("pointerenter", function () {
+    pointer.inside = true;
+    pointer.real = true;
+  });
+
+  // ---- controls ----
+  var occupancyEl = document.getElementById("occupancy");
+  var bannerEl = document.getElementById("banner");
+  var bannerTextEl = document.getElementById("bannerText");
+  var radiusSlider = document.getElementById("radiusSlider");
+  var speedSlider = document.getElementById("speedSlider");
+  var radiusVal = document.getElementById("radiusVal");
+  var speedVal = document.getElementById("speedVal");
+
+  function refreshBanner() {
+    if (occupancyEl.checked) {
+      bannerEl.classList.remove("idle");
+      bannerTextEl.textContent = "ACTIVE — camera tracking engaged";
+    } else {
+      bannerEl.classList.add("idle");
+      bannerTextEl.textContent = "STANDBY — hallway clear, wall parked at max extension";
+    }
+  }
+  occupancyEl.addEventListener("change", refreshBanner);
+  radiusSlider.addEventListener("input", function () {
+    radiusVal.textContent = (radiusSlider.value / 100).toFixed(2) + "×";
+  });
+  speedSlider.addEventListener("input", function () {
+    speedVal.textContent = (speedSlider.value / 100).toFixed(2);
+  });
+  refreshBanner();
+
+  // ---- telemetry table ----
+  var telBody = document.getElementById("telemetryBody");
+  motors.forEach(function (m) {
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td class="id"><span class="board-dot" style="background:' + BOARD_META[m.board].hex + '"></span>' + m.id + "</td>" +
+      '<td id="ext-' + m.idx + '">100%</td>' +
+      '<td id="pwm-' + m.idx + '">0</td>' +
+      '<td id="dir-' + m.idx + '" class="dir HOLD">HOLD</td>';
+    telBody.appendChild(tr);
+    m.rowEl = { ext: tr.querySelector("#ext-" + m.idx), pwm: tr.querySelector("#pwm-" + m.idx), dir: tr.querySelector("#dir-" + m.idx) };
+  });
+
+  // ---- console log ----
+  var consoleEl = document.getElementById("console");
+  var logCount = 0;
+  var startTime = performance.now();
+
+  function fmtTime() {
+    var s = (performance.now() - startTime) / 1000;
+    return s.toFixed(1) + "s";
+  }
+
+  function logCommand(m, cmd, pwm) {
+    if (logCount === 0) consoleEl.innerHTML = "";
+    var line = document.createElement("div");
+    line.className = "line";
+    line.innerHTML =
+      '<span class="ts">[' + fmtTime() + "]</span> " +
+      BOARD_META[m.board].name + " → " + m.id + " CMD:" +
+      '<span class="cmd-' + cmd + '">' + cmd + "</span> PWM:" + pwm;
+    consoleEl.appendChild(line);
+    logCount++;
+    while (consoleEl.children.length > 120) consoleEl.removeChild(consoleEl.firstChild);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  document.getElementById("clearLog").addEventListener("click", function () {
+    consoleEl.innerHTML = '<div class="empty">// log cleared</div>';
+    logCount = 0;
+  });
+
+  // ---- color interpolation ----
+  var WHITE = [246, 244, 239];
+  var RED = [255, 53, 53];
+  function lerpColor(t) {
+    var r = Math.round(WHITE[0] + (RED[0] - WHITE[0]) * t);
+    var g = Math.round(WHITE[1] + (RED[1] - WHITE[1]) * t);
+    var b = Math.round(WHITE[2] + (RED[2] - WHITE[2]) * t);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+
+  var RETRACT_T = 0.12;
+  var EXTEND_T = 0.85;
+
+  var targetVal = document.getElementById("targetVal");
+
+  function frame() {
+    var sigma = parseInt(radiusSlider.value, 10);
+    var smoothing = parseInt(speedSlider.value, 10) / 100;
+    var occupied = occupancyEl.checked;
+    var usePointer = occupied && pointer.inside;
+
+    var best = null;
+
+    motors.forEach(function (m) {
+      var target = 1;
+      if (usePointer) {
+        var dx = pointer.x - m.cx;
+        var dy = pointer.y - m.cy;
+        var d2 = dx * dx + dy * dy;
+        var influence = Math.exp(-d2 / (2 * sigma * sigma));
+        target = 1 - influence;
+      }
+      m.prevExt = m.ext;
+      m.ext += (target - m.ext) * smoothing;
+      if (m.ext < 0) m.ext = 0;
+      if (m.ext > 1) m.ext = 1;
+
+      var retract = 1 - m.ext;
+      var color = lerpColor(retract);
+      m.el.setAttribute("fill", color);
+      var strokeW = (1.5 + retract * 3.5).toFixed(1);
+      m.el.setAttribute("stroke-width", strokeW);
+      m.el.setAttribute("stroke", retract > 0.08 ? "#ff8080" : "#3a4045");
+      m.textEl.setAttribute("fill", m.ext > 0.55 ? "#1a1a1a" : "#fff2f2");
+
+      if (m.ext <= RETRACT_T && m.state !== "RETRACTED") {
+        m.state = "RETRACTED";
+        logCommand(m, "REVERSE", Math.round(retract * 255));
+      } else if (m.ext >= EXTEND_T && m.state === "RETRACTED") {
+        m.state = "EXTENDED";
+        logCommand(m, "FORWARD", Math.round(m.ext * 255));
+      } else if (m.ext > RETRACT_T && m.ext < EXTEND_T) {
+        m.state = "ENGAGING";
+      }
+
+      var pwm = Math.round(retract * 255);
+      var dir = "HOLD";
+      if (m.ext < m.prevExt - 0.0006) dir = "REV";
+      else if (m.ext > m.prevExt + 0.0006) dir = "FWD";
+
+      m.rowEl.ext.textContent = Math.round(m.ext * 100) + "%";
+      m.rowEl.pwm.textContent = pwm;
+      m.rowEl.dir.textContent = dir;
+      m.rowEl.dir.className = "dir " + dir;
+
+      if (m.ext < 0.85 && (best === null || m.ext < best.ext)) best = m;
+    });
+
+    if (best) {
+      var pwmB = Math.round((1 - best.ext) * 255);
+      var cmdLabel = best.state === "RETRACTED" ? "REVERSE" : "ENGAGING";
+      targetVal.innerHTML =
+        best.id + " &middot; " + BOARD_META[best.board].name + " &middot; " +
+        Math.round((1 - best.ext) * 100) + "% retract &middot; " +
+        '<span class="' + (cmdLabel === "REVERSE" ? "rev" : "") + '">CMD:' + cmdLabel + " PWM:" + pwmB + "</span>";
+    } else {
+      targetVal.textContent = "no active target — wall at rest";
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
+
+  // hot-reload state carry (harmless if unused)
+  try {
+    if (window.claude && window.claude.hot) {
+      window.claude.hot.ready ? window.claude.hot.ready(function () {}) : null;
+    }
+  } catch (e) {}
+})();
+</script>
+
+</body></html>
