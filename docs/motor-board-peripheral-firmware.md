@@ -1,7 +1,7 @@
 # Motor Driver Board — Peripheral Firmware Notes
 
-> Companion doc for `ResonantWallMotorBoard` (Arduino sketch, delivered as a
-> file — see chat for the .zip). Captures the pinout as read off the
+> Companion doc for `ResonantWallMotorBoard` (Arduino sketch, source in
+> [`firmware/ResonantWallMotorBoard/`](../firmware/ResonantWallMotorBoard/)). Captures the pinout as read off the
 > schematic, the protocol decisions, and open items, so this stays in sync
 > with `resonant-wall-master-spec.md` and `vl53l0x-arduino-uno-test.md`.
 
@@ -40,6 +40,10 @@ is the reason why.
 - A USB-serial bench console (same command verbs, ASCII) still exists
   purely for typing commands from the Arduino Serial Monitor without a
   master present — that's local debug only, not the real link.
+  `SERIAL_CONSOLE_ENABLED` in `config.h` switches it on (default: on for the
+  old bench board, off for the MotorDriver Board). With it off, the board
+  prints its boot banner and MAC, then hands GPIO1/GPIO3 to L1/L0. With it
+  on, M0/M1 on the MotorDriver Board run without limit switches.
 
 ## Pinout — read from the schematic, not yet verified against real hardware
 
@@ -88,6 +92,15 @@ Motor numbering is M1–M5 (silkscreen) rather than M0–M4:
 
 Active in the sketch today via `USE_OLD_BENCH_PINOUT 1` in `config.h`.
 
+### Limit switches
+
+Each actuator has one switch that closes at both ends of travel. The firmware
+reads it as switch → GND with the ESP32's internal pull-up (active LOW, 15 ms
+debounce), following the node controller design sheet. A move that starts on a
+pressed switch ignores it until it releases. HOME backs off a pressed switch
+(extend first, then retract if it stays pressed), then retracts until the
+switch trips, which sets position 0 %.
+
 ## Position without encoders
 
 No position feedback exists, so position is time-based: elapsed drive time
@@ -106,6 +119,13 @@ switch to find — expected there, not a bug; use `FWD`/`REV`/`STOP` directly.)
   fixing on a respin.
 - IR sensors and LED strip: pins reserved, no driver code yet.
 - No current-sense / stall detection (R_IS, L_IS unused).
+- M0 RPWM is on GPIO12 (MTDI strapping pin). If anything pulls it high at
+  reset, the ESP32 selects 1.8 V flash and fails to boot (see the node
+  controller design sheet). The firmware drives it low as soon as it starts,
+  but check the board's pull-downs before fabrication.
+- No firmware has been compiled against a real ESP32 core yet. It has only
+  been compiled on a host with stub headers and run against a simulated
+  actuator.
 - `MASTER_MAC` / `ESPNOW_WIFI_CHANNEL` need real values once a master device
   exists.
 - Camera-based hand tracking and its mapping to per-motor targets remain

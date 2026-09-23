@@ -2,3 +2,8 @@
 *-backups/
 fp-info-cache
 ~*.lck
+
+# master app local state
+master/resonant_wall_master.json
+master/resonant_wall_master.json.tmp
+__pycache__/

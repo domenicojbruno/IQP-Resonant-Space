@@ -13,6 +13,9 @@ An interactive "resonant wall" for a hallway. VL53L0X time-of-flight sensors det
 
 | Path | Contents |
 |---|---|
+| [`firmware/ResonantWallMotorBoard/`](firmware/ResonantWallMotorBoard/) | Motor board sketch (one image for all three boards): BTS7960 drive, limit switches, time-based position, HOME/CAL/GOTO, ESP-NOW link and USB bench console |
+| [`firmware/ResonantWallGateway/`](firmware/ResonantWallGateway/) | USB-serial ↔ ESP-NOW gateway sketch for the ESP32 that stays plugged into the PC |
+| [`master/`](master/) | PC master app `resonant_wall_master.py` (Python/Tkinter + pyserial): wall view, threshold and GOTO-stream control, per-board links, E-STOP |
 | [`docs/resonant-wall-master-spec.md`](docs/resonant-wall-master-spec.md) | Wall topology, motor addressing, actuation model and command semantics |
 | [`docs/motor-board-peripheral-firmware.md`](docs/motor-board-peripheral-firmware.md) | Motor board firmware notes: ESP-NOW transport, pinout, open items |
 | [`docs/master-ui-and-gateway.md`](docs/master-ui-and-gateway.md) | PC master app and ESP-NOW gateway: packet formats, line protocol, control logic |
@@ -22,6 +25,13 @@ An interactive "resonant wall" for a hallway. VL53L0X time-of-flight sensors det
 | [`docs/images/TOFpins.png`](docs/images/TOFpins.png) | VL53L0X breakout pinout |
 | [`hardware/motor-driver-board/`](hardware/motor-driver-board/) | KiCad PCB (`.kicad_pcb`) and schematic PDF for the motor driver board |
 | [`datasheets/`](datasheets/) | ESP32-WROOM-32, VL53L0X, BTS7960 and Arduino Uno (A000066) datasheets |
+
+## Getting started
+
+1. **Gateway.** Flash `firmware/ResonantWallGateway/` to a spare ESP32 and plug it into the PC. It prints `MAC <mac>` at boot.
+2. **Motor boards.** In `firmware/ResonantWallMotorBoard/config.h`, set `BOARD_ID` / `MOTOR_COUNT` (0/5, 1/3, 2/5 for rows A/B/C), `USE_OLD_BENCH_PINOUT`, and `MASTER_MAC` (the gateway's MAC). Then flash each board. Each board prints its own MAC over USB at boot. The board needs Arduino-ESP32 core 3.x; the gateway builds on core 2.x or 3.x.
+3. **Master.** `pip install -r master/requirements.txt`, then `python3 master/resonant_wall_master.py`. Choose the gateway port and enter each board's MAC (the app also learns a MAC from the board's first status packet). Pick a mode: Manual, Threshold (FWD/REV) or GOTO stream. Esc is E-STOP. Settings are saved to `master/resonant_wall_master.json` on exit.
+4. Run `CAL` once per motor (MotorDriver Board only; it needs limit switches) so time-based positions and GOTO use the measured travel time.
 
 ## Protocol summary
 
@@ -37,4 +47,5 @@ Command codes: FWD 0 · REV 1 · STOP 2 · HOME 3 · CAL 4 · GOTO 5. See [`docs
 - The motor driver board has been designed in KiCad but not yet fabricated. Its pinout is transcribed from the schematic and still needs to be verified against hardware.
 - The VL53L0X has been bench-tested on an Arduino Uno.
 - The master-node simulator (`simulator/`) runs as-is in any browser.
-- Firmware and master app source (`ResonantWallMotorBoard`, `resonant_wall_master.py`, `ResonantWallGateway.ino`, `vl53l0x_distance_test.ino`) are not in this repo yet.
+- The firmware and master app source is now in `firmware/` and `master/`, written from the specs in `docs/`. Neither sketch has been compiled against a real ESP32 core or run on hardware yet. Both were compiled on a host with stub headers. The motor board state machine was exercised against a simulated actuator, and the master app was tested against fake boards and a fake gateway on virtual serial ports.
+- `vl53l0x_distance_test.ino` (the Uno sensor test) is not in this repo yet, and ToF occupancy is not wired into the master. The "Hallway occupied" toggle in the app stands in for it.

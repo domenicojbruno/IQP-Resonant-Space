@@ -1,9 +1,9 @@
 # Master Control UI + ESP-NOW Gateway
 
 > Companion to `resonant-wall-master-spec.md` and `motor-board-peripheral-firmware.md`.
-> Covers the PC-side master app `resonant_wall_master.py` (Python/Tkinter + pyserial) and the
-> USB↔ESP-NOW gateway sketch `ResonantWallGateway.ino`. Both were delivered in chat as `ResonantWallMaster.zip`.
-> The protocol values below match the `ResonantWallMotorBoard` firmware source (config.h, CommsEspNow.h, CommsSerial.cpp).
+> Covers the PC-side master app [`master/resonant_wall_master.py`](../master/resonant_wall_master.py) (Python/Tkinter + pyserial) and the
+> USB↔ESP-NOW gateway sketch [`firmware/ResonantWallGateway/ResonantWallGateway.ino`](../firmware/ResonantWallGateway/ResonantWallGateway.ino).
+> The protocol values below match the `ResonantWallMotorBoard` firmware source (Protocol.h, CommsEspNow.cpp, CommsSerial.cpp).
 
 ## Architecture
 - A PC has no ESP-NOW radio, so **one extra ESP32 (the gateway)** stays plugged into the PC over USB.
@@ -44,6 +44,6 @@
 - A saved config written by the first version (which used placeholder codes) has its protocol section replaced automatically. This is tracked with `protocol.version`, currently 2.
 
 ## Status
-- Tested end to end against fakes on virtual serial ports that reproduce the firmware's packets, console replies and 250 ms status stream. Covered: MAC detection, ACK/FAIL, OK matching for `*` commands, status decoding, threshold and GOTO modes, E-STOP, and migration of an old config.
-- The gateway sketch was **not compiled against a real ESP32 core** (no toolchain available). Its version-dependent send-callback technique was checked with a host compiler.
-- The board firmware itself requires Arduino-ESP32 core 3.x (`esp_now_recv_info_t` callback, `ledcAttach`).
+- The master app was tested end to end against fake boards and a fake gateway on virtual serial ports. The fakes reproduce the firmware's packets, console replies and 250 ms status stream. The tests covered MAC detection, ACK/FAIL, OK matching for `*` commands, status decoding, threshold and GOTO modes, E-STOP, STOP-all on close, and migration of an old config. The Tk UI was also run under Xvfb.
+- Neither sketch has been **compiled against a real ESP32 core**, because no toolchain was available. Both were compiled with a host compiler against stub Arduino/ESP-IDF headers. The motor board state machine (HOME, CAL, GOTO, FWD/REV to limit, runaway and homing timeouts, bench console) was run against a simulated actuator. The gateway's send callback was checked against both the pre-5.5 and the ESP-IDF 5.5 callback signatures.
+- The board firmware requires Arduino-ESP32 core 3.x (`esp_now_recv_info_t` callback, `ledcAttach`). The gateway builds on core 2.x or 3.x.
